@@ -1,0 +1,4 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","16566","Переход на главную страницу и отображение кнопки «Выход»","tests","2026-05-29","broken","2026-05-29","TestLogin","test_login","",""
+"","3491","Создание аккаунта","tests","2026-05-29","passed","2026-05-29","TestRegistration","test_registration","",""
+"","0","Создание рецепта","tests","2026-05-29","broken","2026-05-29","TestRecipeCreation","test_recipe","",""
