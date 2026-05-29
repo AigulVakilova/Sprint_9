@@ -1,8 +1,10 @@
+import os
 import pytest
 import allure
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 from pages.main_page import MainPage
 from pages.login_page import LoginPage
@@ -12,19 +14,38 @@ from test_data import EXISTING_USER
 
 @pytest.fixture(scope="function")
 def driver():
-    """Инициализация локального Chrome"""
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920,1080")
-
-    driver_instance = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=chrome_options,
-    )
-
+    """Инициализация драйвера — Selenoid в CI или локальный Chrome"""
+    selenoid_url = os.getenv("SELENOID_URL")
+ 
+    if selenoid_url:
+        # CI/CD — запуск через Selenoid
+        chrome_options = ChromeOptions()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.set_capability("browserName", "chrome")
+        chrome_options.set_capability("browserVersion", "128.0")
+        chrome_options.set_capability(
+            "selenoid:options",
+            {"enableVNC": False, "enableVideo": False},
+        )
+        driver_instance = webdriver.Remote(
+            command_executor=selenoid_url,
+            options=chrome_options,
+        )
+    else:
+        # Локальный запуск
+        chrome_options = Options()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--window-size=1920,1080")
+        driver_instance = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()),
+            options=chrome_options,
+        )
+ 
     yield driver_instance
-
+ 
     driver_instance.quit()
 
 @pytest.fixture(scope="function")
