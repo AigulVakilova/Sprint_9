@@ -27,7 +27,7 @@ jobs:
 
       - name: Pull Selenoid and Chrome images
         run: |
-          docker pull aerokube/selenoid:latest
+          docker pull aerokube/selenoid:1.10.12
           docker pull selenoid/chrome:128.0
 
       - name: Write browsers.json
@@ -107,3 +107,4 @@ jobs:
       - name: Stop Selenoid
         if: always()
         run: docker stop selenoid && docker rm selenoid
+        
