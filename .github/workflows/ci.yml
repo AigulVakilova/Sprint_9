@@ -16,59 +16,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: "3.13"
-          cache: pip
+      - name: Pull Chrome image for Selenoid
+        run: docker pull selenoid/chrome:128.0
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Pull Selenoid and Chrome images
-        run: |
-          docker pull aerokube/selenoid:1.10.12
-          docker pull selenoid/chrome:128.0
-
-      - name: Write browsers.json
-        run: |
-          mkdir -p /tmp/selenoid
-          cat > /tmp/selenoid/browsers.json << 'JSON'
-          {
-            "chrome": {
-              "default": "128.0",
-              "versions": {
-                "128.0": {
-                  "image": "selenoid/chrome:128.0",
-                  "port": "4444",
-                  "path": "/"
-                }
-              }
-            }
-          }
-          JSON
-
-      - name: Start Selenoid
-        run: |
-          docker run -d \
-            --name selenoid \
-            -p 4444:4444 \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v /tmp/selenoid:/etc/selenoid \
-            aerokube/selenoid:1.10.12 \
-            -conf /etc/selenoid/browsers.json \
-            -limit 2
-          timeout 30 bash -c 'until curl -s http://localhost:4444/status; do sleep 1; done'
-
-      - name: Run tests
+      - name: Run tests in Docker
+        run: docker compose up --build --exit-code-from test_docker
         env:
-          SELENOID_URL: http://localhost:4444/wd/hub
           EXISTING_USER_EMAIL: ${{ secrets.EXISTING_USER_EMAIL }}
           EXISTING_USER_PASSWORD: ${{ secrets.EXISTING_USER_PASSWORD }}
-        run: |
-          pytest \
-            --alluredir=allure-results \
-            -v
         continue-on-error: true
 
       - name: Upload Allure results
@@ -103,8 +58,4 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-history
           force_orphan: true
-
-      - name: Stop Selenoid
-        if: always()
-        run: docker stop selenoid && docker rm selenoid
-        
+          

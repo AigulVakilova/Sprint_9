@@ -7,28 +7,29 @@ services:
     container_name: selenoid
     ports:
       - "4444:4444"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./browsers.json:/etc/selenoid/browsers.json
-    command: -conf /etc/selenoid/browsers.json -limit 4
     networks:
-      - test-network
+      - selenoid
+    volumes:
+      - ./browsers.json:/etc/selenoid/browsers.json
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: ["-conf", "/etc/selenoid/browsers.json", "-container-network", "selenoid"]
 
-  tests:
+  test_docker:
     build: .
-    container_name: autotests
+    container_name: test_docker
+    links:
+      - selenoid
     environment:
       - SELENOID_URL=http://selenoid:4444/wd/hub
-    command: >
-      pytest
-      --alluredir=allure-results
-      -v
     depends_on:
       - selenoid
     networks:
-      - test-network
+      - selenoid
+    volumes:
+      - ./allure-results:/app/allure-results
+    command: ["pytest", "tests", "--alluredir=allure-results", "-v"]
 
 networks:
-  test-network:
-    driver: bridge
+  selenoid:
+    name: selenoid
     
