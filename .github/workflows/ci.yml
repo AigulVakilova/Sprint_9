@@ -55,7 +55,7 @@ jobs:
             -p 4444:4444 \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v /tmp/selenoid:/etc/selenoid \
-            aerokube/selenoid:latest \
+            aerokube/selenoid:1.10.12 \
             -conf /etc/selenoid/browsers.json \
             -limit 2
           timeout 30 bash -c 'until curl -s http://localhost:4444/status; do sleep 1; done'

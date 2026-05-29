@@ -20,7 +20,7 @@ class LoginPage(BasePage):
 
     @allure.step("Нажать кнопку «Войти»")
     def submit(self) -> None:
-        self._click(LoginPageLocators.SUBMIT_BUTTON)
+        self._find_visible(LoginPageLocators.SUBMIT_BUTTON).click()
         try:
             alert = self._wait.until(EC.alert_is_present())
             message = alert.text
