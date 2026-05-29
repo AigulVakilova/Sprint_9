@@ -1,0 +1,108 @@
+name: Autotests CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Run Selenium Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pull Selenoid and Chrome images
+        run: |
+          docker pull aerokube/selenoid:latest
+          docker pull selenoid/chrome:128.0
+
+      - name: Write browsers.json
+        run: |
+          mkdir -p /tmp/selenoid
+          cat > /tmp/selenoid/browsers.json << 'JSON'
+          {
+            "chrome": {
+              "default": "128.0",
+              "versions": {
+                "128.0": {
+                  "image": "selenoid/chrome:128.0",
+                  "port": "4444",
+                  "path": "/"
+                }
+              }
+            }
+          }
+          JSON
+
+      - name: Start Selenoid
+        run: |
+          docker run -d \
+            --name selenoid \
+            -p 4444:4444 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /tmp/selenoid:/etc/selenoid \
+            aerokube/selenoid:latest \
+            -conf /etc/selenoid/browsers.json \
+            -limit 2
+          timeout 30 bash -c 'until curl -s http://localhost:4444/status; do sleep 1; done'
+
+      - name: Run tests
+        env:
+          SELENOID_URL: http://localhost:4444/wd/hub
+          EXISTING_USER_EMAIL: ${{ secrets.EXISTING_USER_EMAIL }}
+          EXISTING_USER_PASSWORD: ${{ secrets.EXISTING_USER_PASSWORD }}
+        run: |
+          pytest \
+            --alluredir=allure-results \
+            -v
+        continue-on-error: true
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 7
+
+      - name: Get Allure history
+        uses: actions/checkout@v4
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Generate Allure report
+        uses: simple-elf/allure-report-action@master
+        if: always()
+        with:
+          allure_results: allure-results
+          allure_history: allure-history
+          keep_reports: 20
+
+      - name: Publish Allure report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+
+      - name: Stop Selenoid
+        if: always()
+        run: docker stop selenoid && docker rm selenoid
