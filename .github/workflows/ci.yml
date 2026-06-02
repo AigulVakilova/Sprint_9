@@ -1,0 +1,61 @@
+name: Autotests CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Run Selenium Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Chrome image for Selenoid
+        run: docker pull selenoid/chrome:128.0
+
+      - name: Run tests in Docker
+        run: docker compose up --build --exit-code-from test_docker
+        env:
+          EXISTING_USER_EMAIL: ${{ secrets.EXISTING_USER_EMAIL }}
+          EXISTING_USER_PASSWORD: ${{ secrets.EXISTING_USER_PASSWORD }}
+        continue-on-error: true
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4.4.0
+        if: always()
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 7
+
+      - name: Get Allure history
+        uses: actions/checkout@v4.2.0
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Generate Allure report
+        uses: simple-elf/allure-report-action@master
+        if: always()
+        with:
+          allure_results: allure-results
+          allure_history: allure-history
+          keep_reports: 20
+
+      - name: Publish Allure report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+          force_orphan: true
+          
