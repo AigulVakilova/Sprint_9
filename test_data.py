@@ -1,16 +1,12 @@
 import os
-import uuid
 from pathlib import Path
-
-def _uid() -> str:
-    """Генерирует уникальный суффикс для тестовых данных."""
-    return uuid.uuid4().hex[:8]
+from helpers import generate_uid
 
 NEW_USER = {
     "first_name": "Дарья",
     "last_name": "Иванова",
-    "username": f"testuser_{_uid()}",
-    "email": f"test_{_uid()}@mail.com",
+    "username": f"testuser_{generate_uid()}",
+    "email": f"test_{generate_uid()}@mail.com",
     "password": "rYH3K/oAFqg<",
 }
 
@@ -20,7 +16,7 @@ EXISTING_USER = {
 }
 
 NEW_RECIPE = {
-    "title": f"Омлет {_uid()}",
+    "title": f"Омлет {generate_uid()}",
     "description": "Классический пышный омлет",
     "cooking_time": 10,
     "ingredients": [
